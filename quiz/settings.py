@@ -23,6 +23,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # IN APP MODULE
+    'users',
+    'quiz',
+
+    # THIRD PARTY APPS
+    'rest_framework',
+
 ]
 
 MIDDLEWARE = [
