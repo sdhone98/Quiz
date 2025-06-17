@@ -1,0 +1,23 @@
+# PYTHON
+.idea/
+__pycache__/
+*.py[cod]
+*.pyc
+/shelf/
+/workspace.xml
+
+
+# ENVIRONMENT
+.venv/
+.env
+*.env
+
+# DJANGO DB
+db.sqlite3
+
+# OS / EDITOR JUNK
+.DS_Store
+Thumbs.db
+
+# LOGS
+*.log
