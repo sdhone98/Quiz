@@ -132,7 +132,8 @@ class QuestionView(APIView):
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         try:
-            validated_data = seralizer.QuestionSerializer(data=request.data)
+            is_bulk = isinstance(request.data, list)
+            validated_data = seralizer.QuestionSerializer(data=request.data, many=is_bulk)
 
             if not validated_data.is_valid():
                 return response_builder(
@@ -140,7 +141,7 @@ class QuestionView(APIView):
                     status_code=status.HTTP_406_NOT_ACCEPTABLE
                 )
 
-            helper.add_question(validated_data.data)
+            validated_data.save()
 
             return response_builder(
                 result="Question added successfully",
@@ -276,10 +277,19 @@ class QuizView(APIView):
 class QuizSetView(APIView):
     def get(self, request, *args, **kwargs):
         try:
-            return response_builder(
-                result=helper.get_all_quiz_sets(),
-                status_code=status.HTTP_200_OK
-            )
+            in_detail = request.query_params.get("detail", False)
+            q_set_id = request.query_params.get("id", False)
+
+            if in_detail:
+                return response_builder(
+                    result=helper.get_all_quiz_sets_in_detail(q_set_id),
+                    status_code=status.HTTP_200_OK
+                )
+            else:
+                return response_builder(
+                    result=helper.get_all_quiz_sets(q_set_id),
+                    status_code=status.HTTP_200_OK
+                )
         except QuizExceptionHandler as e:
             return response_builder(
                 result=e.error_msg,

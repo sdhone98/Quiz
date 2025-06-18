@@ -5,7 +5,8 @@ from quiz.seralizer import (
     TopicSerializer,
     QuestionSerializer,
     QuizSerializer,
-    QuizSetSerializer
+    QuizSetSerializer,
+    QuizSetDetailsSerializer
 )
 
 
@@ -55,16 +56,6 @@ def get_all_questions():
     questions = Question.objects.all()
     serializer = QuestionSerializer(questions, many=True)
     return serializer.data
-
-
-def add_question(validated_data):
-    serializer = QuestionSerializer(data=validated_data)
-    if not serializer.is_valid():
-        raise QuizExceptionHandler(
-            error_msg=serializer.errors,
-            error_code=status.HTTP_406_NOT_ACCEPTABLE,
-        )
-    serializer.save()
 
 
 def delete_question(question_id):
@@ -143,9 +134,15 @@ def delete_quiz(quiz_id):
     found_quiz.delete()
 
 
-def get_all_quiz_sets():
-    quiz_sets = QuizSet.objects.all()
+def get_all_quiz_sets(q_set_id):
+    quiz_sets = QuizSet.objects.filter(id=q_set_id) if q_set_id else QuizSet.objects.all()
     serialize = QuizSetSerializer(quiz_sets, many=True)
+    return serialize.data
+
+
+def get_all_quiz_sets_in_detail(q_set_id):
+    quiz_sets = QuizSet.objects.filter(id=q_set_id) if q_set_id else QuizSet.objects.all()
+    serialize = QuizSetDetailsSerializer(quiz_sets, many=True)
     return serialize.data
 
 

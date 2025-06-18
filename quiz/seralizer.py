@@ -97,3 +97,40 @@ class QuizSetSerializer(serializers.ModelSerializer):
                 )
         return attrs
 
+
+class QuizSetDetailsSerializer(serializers.ModelSerializer):
+    quiz = serializers.SerializerMethodField()
+    questions = serializers.SerializerMethodField()
+
+    class Meta:
+        model = QuizSet
+        fields = ['id', 'quiz', 'questions']
+
+    def get_quiz(self, obj):
+        return {
+            "id": obj.quiz.id,
+            "name": obj.quiz.title,
+            "topic_id": obj.quiz.topic.id,
+            "topic_name": obj.quiz.topic.name
+        }
+
+    def get_questions(self, obj):
+        return [
+            {
+                "id": q.id,
+                "question_text": q.question_text,
+                "option_a": q.option_a,
+                "option_b": q.option_b,
+                "option_c": q.option_c,
+                "option_d": q.option_d,
+                "correct_option": q.correct_option,
+                "topic": q.topic.id,
+                "topic_name": q.topic.name,
+                "difficulty_level": q.difficulty_level
+            }
+            for q in obj.questions.all()
+        ]
+
+
+
+
