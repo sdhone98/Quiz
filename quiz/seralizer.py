@@ -1,11 +1,18 @@
 from rest_framework import serializers, status
-from quiz.models import Topic, Question
 from resources import QuizExceptionHandler
+from quiz.models import (
+    Topic,
+    Question,
+    Quiz,
+    QuizSet,
+)
+
 
 class TopicSerializer(serializers.ModelSerializer):
     class Meta:
         model = Topic
         fields = '__all__'
+
 
 class TopicAddCheckSerializer(serializers.Serializer):
     topics = serializers.ListField(
@@ -25,6 +32,7 @@ class TopicAddCheckSerializer(serializers.Serializer):
 
             cleaned.append(topic_clean)
         return cleaned
+
 
 class TopicUpdateCheckSerializer(serializers.Serializer):
     topic = serializers.CharField(required=True)
@@ -55,3 +63,37 @@ class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Question
         fields = '__all__'
+
+
+class QuizSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Quiz
+        fields = '__all__'
+
+
+class QuizSetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuizSet
+        fields = '__all__'
+
+    def validate(self, attrs):
+        # CHECK IF ID Exist OR NOT
+        if self.context.get("id_check"):
+            quiz_set_id = self.context.get("quiz_set_id")
+
+            if not QuizSet.objects.filter(id=quiz_set_id).exists():
+                raise QuizExceptionHandler(
+                    error_msg=f"The quiz set '{quiz_set_id}' does not exist.",
+                    error_code=status.HTTP_404_NOT_FOUND
+                )
+        quiz = attrs.get("quiz")
+        questions = attrs.get("questions")
+
+        for q in questions:
+            if q.topic.id != quiz.topic.id:
+                raise QuizExceptionHandler(
+                    error_msg=f"'{q.question_text}' belongs to {quiz.topic.name} quiz, please choose correct one",
+                    error_code=status.HTTP_406_NOT_ACCEPTABLE
+                )
+        return attrs
+
