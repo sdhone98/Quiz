@@ -180,114 +180,20 @@ class QuestionView(APIView):
             )
 
 
-class QuizView(APIView):
-    def get(self, request, *args, **kwargs):
-        try:
-            return response_builder(
-                result=helper.get_all_quizzes(),
-                status_code=status.HTTP_200_OK
-            )
-        except QuizExceptionHandler as e:
-            return response_builder(
-                result=e.error_msg,
-                status_code=e.error_code
-            )
-        except Exception as e:
-            return response_builder(
-                result=str(e),
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    @transaction.atomic()
-    def post(self, request, *args, **kwargs):
-        try:
-            validated_data = seralizer.QuizSerializer(data=request.data)
-            if not validated_data.is_valid():
-                return response_builder(
-                    result=validated_data.errors,
-                    status_code=status.HTTP_406_NOT_ACCEPTABLE
-                )
-            helper.add_quiz(validated_data.data)
-
-            return response_builder(
-                result="Quiz created successfully",
-                status_code=status.HTTP_200_OK
-            )
-        except QuizExceptionHandler as e:
-            return response_builder(
-                result=e.error_msg,
-                status_code=e.error_code
-            )
-        except Exception as e:
-            return response_builder(
-                result=str(e),
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    @transaction.atomic()
-    def put(self, request, *args, **kwargs):
-        try:
-            quiz_id = request.query_params.get("id", 0)
-            validated_data = seralizer.QuizSerializer(data=request.data)
-            if not validated_data.is_valid():
-                return response_builder(
-                    result=validated_data.errors,
-                    status_code=status.HTTP_406_NOT_ACCEPTABLE
-                )
-
-            helper.update_quiz(quiz_id, validated_data.data)
-            return response_builder(
-                result="Quiz updated successfully",
-                status_code=status.HTTP_200_OK
-            )
-        except QuizExceptionHandler as e:
-            return response_builder(
-                result=e.error_msg,
-                status_code=e.error_code
-            )
-        except Exception as e:
-            print(e)
-            return response_builder(
-                result=str(e),
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    @transaction.atomic()
-    def delete(self, request, *args, **kwargs):
-        try:
-            quiz_id = request.query_params.get("id", 0)
-
-            helper.delete_quiz(quiz_id)
-            return response_builder(
-                result="Quiz deleted successfully",
-                status_code=status.HTTP_200_OK
-            )
-        except QuizExceptionHandler as e:
-            return response_builder(
-                result=e.error_msg,
-                status_code=e.error_code
-            )
-        except Exception as e:
-            return response_builder(
-                result=str(e),
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-
 class QuizSetView(APIView):
     def get(self, request, *args, **kwargs):
         try:
             in_detail = request.query_params.get("detail", False)
             q_set_id = request.query_params.get("id", False)
-
-            if in_detail:
+            difficulty_level = request.query_params.get("difficulty", False)
+            if in_detail in ["True", "true", "TRUE", "T", "1"]:
                 return response_builder(
-                    result=helper.get_all_quiz_sets_in_detail(q_set_id),
+                    result=helper.get_all_quiz_sets_in_detail(q_set_id, difficulty_level),
                     status_code=status.HTTP_200_OK
                 )
             else:
                 return response_builder(
-                    result=helper.get_all_quiz_sets(q_set_id),
+                    result=helper.get_all_quiz_sets(q_set_id, difficulty_level),
                     status_code=status.HTTP_200_OK
                 )
         except QuizExceptionHandler as e:
@@ -310,7 +216,8 @@ class QuizSetView(APIView):
                     result=validated_data.errors,
                     status_code=status.HTTP_406_NOT_ACCEPTABLE
                 )
-            helper.add_quiz_set(validated_data.data)
+
+            validated_data.save()
 
             return response_builder(
                 result="Quiz set created successfully",

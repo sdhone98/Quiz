@@ -3,6 +3,7 @@ from resources import (
     QuestionType,
     QuestionDifficultyType
 )
+from resources.custom_enums import QuizSetType
 
 
 class Topic(models.Model):
@@ -38,33 +39,21 @@ class Question(models.Model):
         managed = True
 
 
-class Quiz(models.Model):
-    title = models.CharField(max_length=100)
-    description = models.TextField()
+class QuizSet(models.Model):
     topic = models.ForeignKey(
         Topic,
         on_delete=models.CASCADE,
-        related_name='quizzes'
+        related_name="quiz_sets"
+    )
+    set_type = models.CharField(
+        max_length=5,
+        choices=QuizSetType.choices(),
+        default=QuizSetType.SET_A.value
     )
     difficulty_level = models.CharField(
         max_length=10,
         choices=QuestionDifficultyType.choices(),
         default=QuestionDifficultyType.EASY.value
-    )
-    is_active = models.BooleanField(default=False)
-    time_limit = models.PositiveIntegerField(help_text="Time limit in minutes")
-    score = models.PositiveIntegerField(default=0)
-
-    class Meta:
-        db_table = "quiz"
-        managed = True
-
-
-class QuizSet(models.Model):
-    quiz = models.ForeignKey(
-        Quiz,
-        on_delete=models.CASCADE,
-        related_name='sets'
     )
     questions = models.ManyToManyField(
         Question,
@@ -72,6 +61,10 @@ class QuizSet(models.Model):
 
     )
 
+    def __str__(self):
+        return f"{self.topic.name}-{self.set_type}-{self.difficulty_level}"
+
     class Meta:
         db_table = "quiz_set"
         managed = True
+        unique_together = ("topic", "set_type", "difficulty_level")

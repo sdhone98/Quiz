@@ -1,11 +1,11 @@
 from rest_framework import serializers, status
-from resources import QuizExceptionHandler
+from resources import QuizExceptionHandler, QuestionDifficultyType
 from quiz.models import (
     Topic,
     Question,
-    Quiz,
     QuizSet,
 )
+from resources.custom_enums import QuizSetType, QuestionType
 
 
 class TopicSerializer(serializers.ModelSerializer):
@@ -21,17 +21,14 @@ class TopicAddCheckSerializer(serializers.Serializer):
     )
 
     def validate_topics(self, value):
-        cleaned = []
         for topic in value:
-            topic_clean = topic.strip().title()
-            if Topic.objects.filter(name=topic_clean).exists():
+            topic_clean = topic.strip().lower()
+            if Topic.objects.filter(name__iexact=topic_clean).exists():
                 raise QuizExceptionHandler(
                     error_msg=f"The topic '{topic}' already exists.",
                     error_code=status.HTTP_226_IM_USED
                 )
-
-            cleaned.append(topic_clean)
-        return cleaned
+        return value
 
 
 class TopicUpdateCheckSerializer(serializers.Serializer):
@@ -64,11 +61,30 @@ class QuestionSerializer(serializers.ModelSerializer):
         model = Question
         fields = '__all__'
 
+    def validate(self, attrs):
+        # VALIDATE ANSWER OPTION
+        if not attrs.get("correct_option", None) in QuestionType.all_keys():
+            raise QuizExceptionHandler(
+                error_msg=f"The question '{attrs.get('correct_option')}' is not correct.",
+                error_code=status.HTTP_406_NOT_ACCEPTABLE
+            )
 
-class QuizSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Quiz
-        fields = '__all__'
+        attrs["correct_option"] = QuestionType[attrs.get("correct_option")].value
+
+        # VALIDATE DIFFICULTY LEVEL
+        if not attrs.get("difficulty_level", None) in QuestionDifficultyType.all_keys():
+            raise QuizExceptionHandler(
+                error_msg=f"The question '{attrs.get('difficulty_level')}' is not correct.",
+                error_code=status.HTTP_406_NOT_ACCEPTABLE
+            )
+        attrs["difficulty_level"] = QuestionDifficultyType[attrs.get("difficulty_level")].value
+        return attrs
+
+
+# class QuizSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Quiz
+#         fields = '__all__'
 
 
 class QuizSetSerializer(serializers.ModelSerializer):
@@ -77,42 +93,55 @@ class QuizSetSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def validate(self, attrs):
-        # CHECK IF ID Exist OR NOT
-        if self.context.get("id_check"):
-            quiz_set_id = self.context.get("quiz_set_id")
+        #CHECK TOPIC ID IS CORRECT
+        if not isinstance(attrs.get("topic", None), Topic):
+            raise QuizExceptionHandler(
+                error_msg=f"The topic '{attrs.get('topic')}' is not a topic.",
+                error_code=status.HTTP_404_NOT_FOUND
+            )
 
-            if not QuizSet.objects.filter(id=quiz_set_id).exists():
-                raise QuizExceptionHandler(
-                    error_msg=f"The quiz set '{quiz_set_id}' does not exist.",
-                    error_code=status.HTTP_404_NOT_FOUND
-                )
-        quiz = attrs.get("quiz")
-        questions = attrs.get("questions")
+        # CHECK SET TYPE
+        if not attrs.get("set_type", None) in QuizSetType.all_keys():
+            raise QuizExceptionHandler(
+                error_msg=f"Invalid set type'{attrs.get('set_type')}', expected set type is {QuizSetType.choices()}.",
+                error_code=status.HTTP_406_NOT_ACCEPTABLE
+            )
+        attrs["set_type"] =  QuizSetType[attrs.get("set_type")].value
 
+        # CHECK QUIZ SET DIFFICULTY LEVEL
+        difficulty_level = attrs.get("difficulty_level")
+        if not difficulty_level in QuestionDifficultyType.all_keys():
+            raise QuizExceptionHandler(
+                error_msg=f"Invalid difficulty level for Quiz '{attrs.get('difficulty_level')}', expected difficulty_level is {QuestionDifficultyType.choices()}.",
+                error_code=status.HTTP_406_NOT_ACCEPTABLE
+            )
+        attrs["difficulty_level"] =  QuestionDifficultyType[attrs.get("difficulty_level")].value
+        difficulty_level = attrs.get("difficulty_level")
+
+
+        # VALIDATION QUESTIONS
+        questions = attrs.get("questions", [])
+        topic = attrs.get("topic")
         for q in questions:
-            if q.topic.id != quiz.topic.id:
+            if q.topic.id != topic.id:
                 raise QuizExceptionHandler(
-                    error_msg=f"'{q.question_text}' belongs to {quiz.topic.name} quiz, please choose correct one",
+                    error_msg=f"'{q.question_text}' belongs to {topic.name} quiz, please choose correct one",
+                    error_code=status.HTTP_406_NOT_ACCEPTABLE
+                )
+            if difficulty_level != q.difficulty_level:
+                raise QuizExceptionHandler(
+                    error_msg=f"Please choose correct difficulty level Quiz Difficulty is {difficulty_level} and Question: {q.question_text} Difficulty is {q.difficulty_level}",
                     error_code=status.HTTP_406_NOT_ACCEPTABLE
                 )
         return attrs
 
 
-class QuizSetDetailsSerializer(serializers.ModelSerializer):
-    quiz = serializers.SerializerMethodField()
+class QuizSetDetailsSerializer(serializers.Serializer):
+    questions_count = serializers.SerializerMethodField()
     questions = serializers.SerializerMethodField()
 
-    class Meta:
-        model = QuizSet
-        fields = ['id', 'quiz', 'questions']
-
-    def get_quiz(self, obj):
-        return {
-            "id": obj.quiz.id,
-            "name": obj.quiz.title,
-            "topic_id": obj.quiz.topic.id,
-            "topic_name": obj.quiz.topic.name
-        }
+    def get_questions_count(self, obj):
+        return obj.questions.count()
 
     def get_questions(self, obj):
         return [
@@ -123,14 +152,7 @@ class QuizSetDetailsSerializer(serializers.ModelSerializer):
                 "option_b": q.option_b,
                 "option_c": q.option_c,
                 "option_d": q.option_d,
-                "correct_option": q.correct_option,
-                "topic": q.topic.id,
-                "topic_name": q.topic.name,
                 "difficulty_level": q.difficulty_level
             }
             for q in obj.questions.all()
         ]
-
-
-
-

@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     # IN APP MODULE
     'users',
     'quiz',
+    'exam',
 
     # THIRD PARTY APPS
     'rest_framework',
