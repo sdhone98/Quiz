@@ -18,7 +18,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'user_type']
+        fields = ['id', 'username', 'email', 'password', 'user_type']
 
     def create(self, validated_data):
         user_type = validated_data.pop('user_type')
@@ -33,3 +33,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             user_type=user_type
         )
         return user
+
+
+class UserLoginSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True)
+    password = serializers.CharField(required=True)

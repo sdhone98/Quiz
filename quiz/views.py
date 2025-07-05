@@ -1,5 +1,6 @@
 from django.db import transaction
 from rest_framework import status
+from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 from quiz import (
     helper,
@@ -14,8 +15,10 @@ from resources import (
 class TopicView(APIView):
     def get(self, request, *args, **kwargs):
         try:
+            is_flat = request.query_params.get("flat", False)
+            is_flat = True if is_flat in ["true", "True", "t", "T"] else False
             return response_builder(
-                result=helper.get_all_topics(),
+                result=helper.get_all_topics(is_flat),
                 status_code=status.HTTP_200_OK
             )
         except QuizExceptionHandler as e:
@@ -109,6 +112,50 @@ class TopicView(APIView):
                 result=str(e),
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+@api_view(["GET"])
+def get_topics_difficulty(request):
+    try:
+        return response_builder(
+            result=helper.get_topics_difficulty(),
+            status_code=status.HTTP_200_OK
+        )
+    except QuizExceptionHandler as e:
+        return response_builder(
+            result=e.error_msg,
+            status_code=e.error_code
+        )
+    except Exception as e:
+        return response_builder(
+            result=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(["POST"])
+def get_set_details(request):
+    try:
+        validated_data = seralizer.SetCheckSerializer(data=request.data)
+        if not validated_data.is_valid():
+            return response_builder(
+                result=validated_data.error_messages,
+                status_code=status.HTTP_406_NOT_ACCEPTABLE
+            )
+
+        return response_builder(
+            result=helper.get_set_details(validated_data.data),
+            status_code=status.HTTP_200_OK
+        )
+    except QuizExceptionHandler as e:
+        return response_builder(
+            result=e.error_msg,
+            status_code=e.error_code
+        )
+    except Exception as e:
+        return response_builder(
+            result=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 class QuestionView(APIView):

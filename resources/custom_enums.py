@@ -8,11 +8,19 @@ class UserType(Enum):
 
     @classmethod
     def choices(cls):
-        return [(key.name.lower(), key.value) for key in cls]
+        return [(key.name, key.value) for key in cls]
 
     @classmethod
     def default(cls):
         return cls.STUDENT.name.lower()
+
+    @classmethod
+    def all_values(cls):
+        return [key.value for key in cls]
+
+    @classmethod
+    def all_keys(cls):
+        return [key.name for key in cls]
 
 
 class QuestionType(Enum):

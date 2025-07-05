@@ -1,6 +1,7 @@
 from rest_framework import status
 from quiz.models import Topic, Question, QuizSet
 from resources import QuizExceptionHandler
+from resources.custom_enums import QuestionDifficultyType
 from quiz.seralizer import (
     TopicSerializer,
     QuestionSerializer,
@@ -9,9 +10,12 @@ from quiz.seralizer import (
 )
 
 
-def get_all_topics():
+def get_all_topics(is_flat):
     topics = Topic.objects.all()
     serializer = TopicSerializer(topics, many=True)
+    if is_flat:
+        return [item['name'] for item in serializer.data]
+
     return serializer.data
 
 
@@ -49,6 +53,16 @@ def delete_topic(topic_id):
         )
 
     found_topic.delete()
+
+
+def get_topics_difficulty():
+    return QuestionDifficultyType.all_values()
+
+def get_set_details(data):
+    topic = data.get('topic')
+    difficulty = data.get('difficulty')
+    found_sets_list = QuizSet.objects.filter(topic__id=topic, difficulty_level=difficulty).values_list('set_type', flat=True).order_by('set_type').distinct()
+    return found_sets_list
 
 
 def get_all_questions():

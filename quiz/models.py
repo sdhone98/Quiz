@@ -60,6 +60,18 @@ class QuizSet(models.Model):
         related_name='in_quiz_sets'
 
     )
+    total_time = models.IntegerField(default=10)
+
+    def save(self, *args, **kwargs):
+        if "total_time" not in self or not self.total_time or self.total_time <= 0:
+            match self.difficulty_level:
+                case QuestionDifficultyType.EASY.value:
+                    self.total_time = 10
+                case QuestionDifficultyType.MEDIUM.value:
+                    self.total_time = 15
+                case QuestionDifficultyType.HARD.value:
+                    self.total_time = 20
+            super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.topic.name}-{self.set_type}-{self.difficulty_level}"
