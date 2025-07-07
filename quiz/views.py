@@ -132,18 +132,18 @@ def get_topics_difficulty(request):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-@api_view(["POST"])
+@api_view(["GET"])
 def get_set_details(request):
     try:
-        validated_data = seralizer.SetCheckSerializer(data=request.data)
-        if not validated_data.is_valid():
-            return response_builder(
-                result=validated_data.error_messages,
-                status_code=status.HTTP_406_NOT_ACCEPTABLE
-            )
+        # validated_data = seralizer.SetCheckSerializer(data=request.data)
+        # if not validated_data.is_valid():
+        #     return response_builder(
+        #         result=validated_data.error_messages,
+        #         status_code=status.HTTP_406_NOT_ACCEPTABLE
+        #     )
 
         return response_builder(
-            result=helper.get_set_details(validated_data.data),
+            result=helper.get_set_details(),
             status_code=status.HTTP_200_OK
         )
     except QuizExceptionHandler as e:
@@ -257,18 +257,17 @@ class QuizSetView(APIView):
     @transaction.atomic()
     def post(self, request, *args, **kwargs):
         try:
-            validated_data = seralizer.QuizSetSerializer(data=request.data)
-            if not validated_data.is_valid():
+            serializer = seralizer.QuizSetSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+
                 return response_builder(
-                    result=validated_data.errors,
-                    status_code=status.HTTP_406_NOT_ACCEPTABLE
+                    result="Quiz set created successfully",
+                    status_code=status.HTTP_201_CREATED
                 )
-
-            validated_data.save()
-
             return response_builder(
-                result="Quiz set created successfully",
-                status_code=status.HTTP_200_OK
+                result=serializer.errors,
+                status_code=status.HTTP_406_NOT_ACCEPTABLE
             )
         except QuizExceptionHandler as e:
             return response_builder(

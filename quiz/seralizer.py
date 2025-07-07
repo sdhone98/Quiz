@@ -113,48 +113,50 @@ class QuestionSerializer(serializers.ModelSerializer):
 
 
 class QuizSetSerializer(serializers.ModelSerializer):
+    questions = serializers.PrimaryKeyRelatedField(
+        queryset=Question.objects.all(),
+        many=True
+    )
+
     class Meta:
         model = QuizSet
         fields = '__all__'
 
     def validate(self, attrs):
+        topic = attrs.get("topic")
+        difficulty_level_key = attrs.get("difficulty_level")
+
         # CHECK TOPIC ID IS CORRECT
-        if not isinstance(attrs.get("topic", None), Topic):
+        if not isinstance(topic, Topic):
             raise QuizExceptionHandler(
-                error_msg=f"The topic '{attrs.get('topic')}' is not a topic.",
+                error_msg=f"The topic '{topic}' is not a topic.",
                 error_code=status.HTTP_404_NOT_FOUND
             )
 
-        # CHECK SET TYPE
-        if not attrs.get("set_type", None) in QuizSetType.all_keys():
+        if difficulty_level_key not in QuestionDifficultyType.all_keys():
             raise QuizExceptionHandler(
-                error_msg=f"Invalid set type'{attrs.get('set_type')}', expected set type is {QuizSetType.choices()}.",
+                error_msg=f"Invalid difficulty level '{difficulty_level_key}', expected values: {QuestionDifficultyType.choices()}",
                 error_code=status.HTTP_406_NOT_ACCEPTABLE
             )
-        attrs["set_type"] = QuizSetType[attrs.get("set_type")].value
 
-        # CHECK QUIZ SET DIFFICULTY LEVEL
-        difficulty_level = attrs.get("difficulty_level")
-        if not difficulty_level in QuestionDifficultyType.all_keys():
+        attrs["difficulty_level"] = QuestionDifficultyType[difficulty_level_key].value
+
+        if attrs["set_type"] not in QuizSetType.all_keys():
             raise QuizExceptionHandler(
-                error_msg=f"Invalid difficulty level for Quiz '{attrs.get('difficulty_level')}', expected difficulty_level is {QuestionDifficultyType.choices()}.",
+                error_msg=f"Invalid set type '{attrs['set_type']}', expected: {QuizSetType.choices()}",
                 error_code=status.HTTP_406_NOT_ACCEPTABLE
             )
-        attrs["difficulty_level"] = QuestionDifficultyType[attrs.get("difficulty_level")].value
-        difficulty_level = attrs.get("difficulty_level")
+        attrs["set_type"] = QuizSetType[attrs["set_type"]].value
 
-        # VALIDATION QUESTIONS
-        questions = attrs.get("questions", [])
-        topic = attrs.get("topic")
-        for q in questions:
-            if q.topic.id != topic.id:
+        for q in attrs["questions"]:
+            if q.topic != topic:
                 raise QuizExceptionHandler(
-                    error_msg=f"'{q.question_text}' belongs to {topic.name} quiz, please choose correct one",
+                    error_msg=f"Question '{q.question_text}' does not belong to Topic '{topic.name}'",
                     error_code=status.HTTP_406_NOT_ACCEPTABLE
                 )
-            if difficulty_level != q.difficulty_level:
+            if q.difficulty_level != attrs["difficulty_level"]:
                 raise QuizExceptionHandler(
-                    error_msg=f"Please choose correct difficulty level Quiz Difficulty is {difficulty_level} and Question: {q.question_text} Difficulty is {q.difficulty_level}",
+                    error_msg=f"Difficulty mismatch for Question '{q.question_text}'",
                     error_code=status.HTTP_406_NOT_ACCEPTABLE
                 )
         return attrs
@@ -180,10 +182,14 @@ class QuizSetDetailsSerializer(serializers.Serializer):
             {
                 "id": q.id,
                 "question_text": q.question_text,
-                "option_a": q.option_a,
-                "option_b": q.option_b,
-                "option_c": q.option_c,
-                "option_d": q.option_d
+                "options": {
+                    "option_a": q.option_a,
+                    "option_b": q.option_b,
+                    "option_c": q.option_c,
+                    "option_d": q.option_d,
+                },
+
+                "option_count": 4
             }
             for q in obj.questions.all()
         ]

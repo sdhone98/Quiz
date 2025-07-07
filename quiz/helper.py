@@ -1,7 +1,7 @@
 from rest_framework import status
 from quiz.models import Topic, Question, QuizSet
 from resources import QuizExceptionHandler
-from resources.custom_enums import QuestionDifficultyType
+from resources.custom_enums import QuestionDifficultyType, QuestionType
 from quiz.seralizer import (
     TopicSerializer,
     QuestionSerializer,
@@ -56,12 +56,38 @@ def delete_topic(topic_id):
 
 
 def get_topics_difficulty():
-    return QuestionDifficultyType.all_values()
+    return [{"id": name, "name":name} for name in QuestionDifficultyType.all_values()]
 
-def get_set_details(data):
-    topic = data.get('topic')
-    difficulty = data.get('difficulty')
-    found_sets_list = QuizSet.objects.filter(topic__id=topic, difficulty_level=difficulty).values_list('set_type', flat=True).order_by('set_type').distinct()
+
+def get_set_details():
+    return [{"id": name, "name":name} for name in QuestionType.all_values()]
+
+    # def get_set_details(data):
+    #     topic = data.get('topic')
+    #     difficulty = data.get('difficulty')
+    #
+    #     topic = Topic.objects.get(id=topic)
+    #     found_topic_quiz = QuizSet.objects.filter(topic=topic)
+    #
+    #     if not found_topic_quiz.exists():
+    #         raise QuizExceptionHandler(
+    #             error_msg=f"Quiz for this '{topic.name}' topic does not exist.",
+    #             error_code=status.HTTP_404_NOT_FOUND
+    #         )
+    #
+    #     topic_quiz_sets = found_topic_quiz.filter(
+    #         difficulty_level=difficulty
+    #     ).values_list("set_type", flat=True).order_by(
+    #         "set_type"
+    #     ).distinct()
+    #
+    #     if not topic_quiz_sets:
+    #         raise QuizExceptionHandler(
+    #             error_msg=f"No quiz set for this topic: '{topic.name}' does not exist.",
+    #             error_code=status.HTTP_404_NOT_FOUND
+    #         )
+    #     topic_quiz_sets = [{"id": name, "name": name} for name in topic_quiz_sets]
+    #     return topic_quiz_sets
     return found_sets_list
 
 

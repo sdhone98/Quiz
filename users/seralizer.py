@@ -15,10 +15,14 @@ class UserDetailSerializer(serializers.ModelSerializer):
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     user_type = serializers.ChoiceField(choices=UserType.choices(), default=UserType.default())
+    name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'user_type']
+        fields = ['id', 'username', 'email', 'password', 'user_type', 'first_name', 'last_name', 'name']
+
+    def get_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip()
 
     def create(self, validated_data):
         user_type = validated_data.pop('user_type')

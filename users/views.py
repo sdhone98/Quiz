@@ -76,16 +76,8 @@ class LoginView(APIView):
             username = serializer.validated_data.get('username', None)
             password = serializer.validated_data.get('password', None)
 
-            user = authenticate(username=username, password=password)
-            if not user:
-                return response_builder(
-                    result=f"User not found with username:'{username}'.!",
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-
-            serializer = UserRegistrationSerializer(user)
             return response_builder(
-                result=serializer.data,
+                result=helper.login(username, password),
                 status_code=status.HTTP_200_OK
             )
         except QuizExceptionHandler as e:
