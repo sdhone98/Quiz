@@ -1,14 +1,10 @@
-from django.contrib.auth.models import User
 from rest_framework import status
-
 from resources import QuizExceptionHandler
-from users.seralizer import UserRegistrationSerializer
+from users.seralizer import UserProfileSerializer
 
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
-def get_all_users():
-    found_user = User.objects.all()
-    serializer = UserRegistrationSerializer(found_user, many=True)
-    return serializer.data
 
 def login(username, password):
     user = User.objects.filter(username=username).first()
@@ -28,6 +24,6 @@ def login(username, password):
         )
 
     # LOGIN SUCCESSFUL
-    serializer = UserRegistrationSerializer(user)
+    serializer = UserProfileSerializer(user)
 
     return serializer.data

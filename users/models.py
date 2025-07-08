@@ -1,19 +1,25 @@
-from django.contrib.auth.models import User
 from django.db import models
-from django.utils.timezone import now
-from resources import UserType
+from resources.custom_enums import GenderType, UserType
+from django.contrib.auth.models import AbstractUser
 
 
-class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    user_type = models.CharField(
-        max_length=20,
-        choices=UserType.choices(),
-        default=UserType.STUDENT
-    )
-    total_quizzes_taken = models.IntegerField(default=0)
-    average_score = models.FloatField(default=0.0)
-    last_active = models.DateTimeField(default=now)
+
+class UserProfile(AbstractUser):
+    email = models.EmailField(unique=True)
+    gender = models.CharField(max_length=10, choices=GenderType.choices(), null=True, blank=True)
+    age = models.PositiveIntegerField(null=True, blank=True)
+    contact_no = models.CharField(max_length=15, null=True, blank=True)
+    role = models.CharField(max_length=10, choices=UserType.choices(), default=UserType.default())
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_activity = models.DateTimeField(auto_now=True)
+
+    REQUIRED_FIELDS = ['email', 'first_name', 'last_name']
+    USERNAME_FIELD = 'username'
+
 
     def __str__(self):
-        return f"{self.user.username} ({self.user_type})"
+        return f"{self.username} ({self.role})"
+
+    @property
+    def name(self):
+        return f"{self.first_name} {self.last_name}".strip()

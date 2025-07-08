@@ -1,4 +1,3 @@
-from django.contrib.auth.models import User
 from rest_framework import serializers, status
 from exam.models import QuizAttempt
 from quiz.models import QuizSet, Topic, Question

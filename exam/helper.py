@@ -1,4 +1,3 @@
-from django.contrib.auth.models import User
 from rest_framework import status
 from quiz.models import QuizSet, Topic
 from quiz import seralizer as quiz_serializer

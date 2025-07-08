@@ -1,11 +1,11 @@
-from users.models import User
+from users.models import UserProfile
 from django.db import models
 from quiz.models import QuizSet, Question
 from resources import QuestionType
 
 
 class QuizAttempt(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, editable=False)
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, editable=False)
     quiz_set = models.ForeignKey(QuizSet, on_delete=models.CASCADE)
     start_at = models.DateTimeField(auto_now_add=True)
     end_at = models.DateTimeField(null=True)

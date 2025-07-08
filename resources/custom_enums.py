@@ -8,11 +8,29 @@ class UserType(Enum):
 
     @classmethod
     def choices(cls):
-        return [(key.name, key.value) for key in cls]
+        return [(key.value, key.value) for key in cls]
 
     @classmethod
     def default(cls):
-        return cls.STUDENT.name.lower()
+        return cls.STUDENT.value
+
+    @classmethod
+    def all_values(cls):
+        return [key.value for key in cls]
+
+    @classmethod
+    def all_keys(cls):
+        return [key.name for key in cls]
+
+
+class GenderType(Enum):
+    MALE = "Male"
+    FEMALE = "Female"
+    OTHER = "Other"
+
+    @classmethod
+    def choices(cls):
+        return [(key.value, key.value) for key in cls]
 
     @classmethod
     def all_values(cls):
@@ -31,7 +49,7 @@ class QuestionType(Enum):
 
     @classmethod
     def choices(cls):
-        return [(key.name, key.value) for key in cls]
+        return [(key.value, key.value) for key in cls]
 
 
     @classmethod
@@ -50,7 +68,7 @@ class QuestionDifficultyType(Enum):
 
     @classmethod
     def choices(cls):
-        return [(key.name, key.value) for key in cls]
+        return [(key.value, key.value) for key in cls]
 
     @classmethod
     def all_values(cls):
@@ -69,7 +87,7 @@ class QuizSetType(Enum):
 
     @classmethod
     def choices(cls):
-        return [(key.name, key.value) for key in cls]
+        return [(key.value, key.value) for key in cls]
 
     @classmethod
     def default(cls):
