@@ -65,7 +65,7 @@ class QuizAttemptSerializer(serializers.ModelSerializer):
         model = QuizAttempt
         fields = "__all__"
 
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    user = serializers.PrimaryKeyRelatedField(queryset=UserProfile.objects.all())
     quiz_set = serializers.PrimaryKeyRelatedField(queryset=QuizSet.objects.all())
     start_at = serializers.DateTimeField()
 
