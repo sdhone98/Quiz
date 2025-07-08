@@ -6,6 +6,7 @@ from resources import (
     QuestionDifficultyType
 )
 from resources.custom_enums import QuizSetType
+from users.models import UserProfile
 
 
 class GetExamDataCheckSerializer(serializers.Serializer):
@@ -13,7 +14,7 @@ class GetExamDataCheckSerializer(serializers.Serializer):
     quiz_set = serializers.IntegerField(required=True, help_text="Quiz ID expected")
 
     def validate_user(self, user):
-        if not User.objects.get(id=user).exists():
+        if not UserProfile.objects.get(id=user).exists():
             raise QuizExceptionHandler(
                 error_msg="User does not exist",
                 error_code=status.HTTP_404_NOT_FOUND
