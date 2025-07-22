@@ -132,6 +132,7 @@ def get_topics_difficulty(request):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+
 @api_view(["GET"])
 def get_set_details(request):
     try:
@@ -162,7 +163,7 @@ class QuestionView(APIView):
     def get(self, request, *args, **kwargs):
         try:
             return response_builder(
-                result=helper.get_all_questions(),
+                result=helper.get_all_questions(request),
                 status_code=status.HTTP_200_OK
             )
         except QuizExceptionHandler as e:
@@ -181,7 +182,6 @@ class QuestionView(APIView):
         try:
             is_bulk = isinstance(request.data, list)
             validated_data = seralizer.QuestionSerializer(data=request.data, many=is_bulk)
-
             if not validated_data.is_valid():
                 return response_builder(
                     result=validated_data.errors,
@@ -233,14 +233,17 @@ class QuizSetView(APIView):
             in_detail = request.query_params.get("detail", False)
             q_set_id = request.query_params.get("id", False)
             difficulty_level = request.query_params.get("difficulty", False)
+            topic = request.query_params.get("topic", False)
+            user = request.query_params.get("user", False)
+
             if in_detail in ["True", "true", "TRUE", "T", "1"]:
                 return response_builder(
-                    result=helper.get_all_quiz_sets_in_detail(q_set_id, difficulty_level),
+                    result=helper.get_all_quiz_sets_in_detail(q_set_id, difficulty_level, topic, user),
                     status_code=status.HTTP_200_OK
                 )
             else:
                 return response_builder(
-                    result=helper.get_all_quiz_sets(q_set_id, difficulty_level),
+                    result=helper.get_all_quiz_sets(q_set_id, difficulty_level, topic),
                     status_code=status.HTTP_200_OK
                 )
         except QuizExceptionHandler as e:

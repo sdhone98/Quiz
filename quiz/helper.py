@@ -4,9 +4,9 @@ from resources import QuizExceptionHandler
 from resources.custom_enums import QuestionDifficultyType, QuestionType
 from quiz.seralizer import (
     TopicSerializer,
-    QuestionSerializer,
     QuizSetSerializer,
-    QuizSetDetailsSerializer
+    QuizSetDetailsSerializer,
+    QuestionDetailsSerializer
 )
 
 
@@ -56,44 +56,24 @@ def delete_topic(topic_id):
 
 
 def get_topics_difficulty():
-    return [{"id": name, "name":name} for name in QuestionDifficultyType.all_values()]
+    return [{"id": name, "name": name} for name in QuestionDifficultyType.all_values()]
 
 
 def get_set_details():
-    return [{"id": name, "name":name} for name in QuestionType.all_values()]
-
-    # def get_set_details(data):
-    #     topic = data.get('topic')
-    #     difficulty = data.get('difficulty')
-    #
-    #     topic = Topic.objects.get(id=topic)
-    #     found_topic_quiz = QuizSet.objects.filter(topic=topic)
-    #
-    #     if not found_topic_quiz.exists():
-    #         raise QuizExceptionHandler(
-    #             error_msg=f"Quiz for this '{topic.name}' topic does not exist.",
-    #             error_code=status.HTTP_404_NOT_FOUND
-    #         )
-    #
-    #     topic_quiz_sets = found_topic_quiz.filter(
-    #         difficulty_level=difficulty
-    #     ).values_list("set_type", flat=True).order_by(
-    #         "set_type"
-    #     ).distinct()
-    #
-    #     if not topic_quiz_sets:
-    #         raise QuizExceptionHandler(
-    #             error_msg=f"No quiz set for this topic: '{topic.name}' does not exist.",
-    #             error_code=status.HTTP_404_NOT_FOUND
-    #         )
-    #     topic_quiz_sets = [{"id": name, "name": name} for name in topic_quiz_sets]
-    #     return topic_quiz_sets
-    return found_sets_list
+    return [{"id": name, "name": name} for name in QuestionType.all_values()]
 
 
-def get_all_questions():
+def get_all_questions(request):
+    topic = request.query_params.get("topic", None)
+    difficulty = request.query_params.get("difficulty", None)
+
     questions = Question.objects.all()
-    serializer = QuestionSerializer(questions, many=True)
+
+    if topic and difficulty:
+        questions = Question.objects.filter(topic__id=int(topic), difficulty_level=difficulty)
+
+    serializer = QuestionDetailsSerializer(questions, many=True)
+
     return serializer.data
 
 
@@ -113,19 +93,23 @@ def delete_question(question_id):
     found_question.delete()
 
 
-def get_all_quiz_sets(q_set_id, difficulty_level):
+def get_all_quiz_sets(q_set_id, difficulty_level, topic):
     quiz_sets = QuizSet.objects.filter(id=q_set_id) if q_set_id else QuizSet.objects.all()
     if difficulty_level:
-        quiz_sets = quiz_sets.filter(quiz__difficulty_level__icontains=difficulty_level)
+        quiz_sets = quiz_sets.filter(difficulty_level__icontains=difficulty_level)
+    if topic:
+        quiz_sets = quiz_sets.filter(topic__id=topic)
     serialize = QuizSetSerializer(quiz_sets, many=True)
     return serialize.data
 
 
-def get_all_quiz_sets_in_detail(q_set_id, difficulty_level):
+def get_all_quiz_sets_in_detail(q_set_id, difficulty_level, topic, user):
     quiz_sets = QuizSet.objects.filter(id=q_set_id) if q_set_id else QuizSet.objects.all()
     if difficulty_level:
-        quiz_sets = quiz_sets.filter(quiz__difficulty_level__icontains=difficulty_level)
-    serialize = QuizSetDetailsSerializer(quiz_sets, many=True)
+        quiz_sets = quiz_sets.filter(difficulty_level__icontains=difficulty_level)
+    if topic:
+        quiz_sets = quiz_sets.filter(topic__id=topic)
+    serialize = QuizSetDetailsSerializer(quiz_sets, many=True, context={"user": user})
     return serialize.data
 
 

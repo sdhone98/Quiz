@@ -1,8 +1,15 @@
 from rest_framework import status
-from quiz.models import QuizSet, Topic
+from exam.serializer import QuizResultDetailSerializer
 from quiz import seralizer as quiz_serializer
 from resources import QuizExceptionHandler
-from exam import serializer
+from quiz.models import (
+    QuizSet,
+    Topic
+)
+from exam import (
+    serializer,
+    models
+)
 
 
 def get_quiz_set(topic, difficulty, set_type):
@@ -19,12 +26,21 @@ def get_quiz_set(topic, difficulty, set_type):
 
 
 def quiz_start_details_fill(user, quiz_set, start_at):
-    serializer_data = serializer.QuizAttemptSerializer(data={"user": user.id, "quiz_set": quiz_set.id, "start_at": start_at})
-
+    serializer_data = serializer.QuizAttemptSerializer(
+        data={"user": user.id, "quiz_set": quiz_set.id, "start_at": start_at})
     if serializer_data.is_valid():
-        serializer_data.save()
+        quiz_attempt = serializer_data.save()
+        response_data = serializer.QuizAttemptSerializer(quiz_attempt).data
+        return response_data
     else:
         raise QuizExceptionHandler(
             error_msg=serializer_data.errors,
             error_code=status.HTTP_406_NOT_ACCEPTABLE
         )
+
+
+def get_quiz_result(user):
+    _data = models.QuizAttempt.objects.filter(user_id=user, is_submitted=True)
+    _serializer = QuizResultDetailSerializer(_data, many=True)
+
+    return _serializer.data
