@@ -1,8 +1,10 @@
 from django.db import transaction
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from exam.serializer import BulkUserAnswersSerializer
+from resources import decode_access_token
 from resources import (
     response_builder,
     QuizExceptionHandler
@@ -15,6 +17,7 @@ from exam import (
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def get_quiz_set(request):
     try:
         validated_data = serializer.GetQuizSetSerializer(data=request.data)
@@ -43,6 +46,7 @@ def get_quiz_set(request):
 
 
 class QuizAttemptViewSet(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request, *args, **kwargs):
         try:
             # models.QuizAttempt.objects.all().delete()
@@ -97,11 +101,38 @@ class QuizAttemptViewSet(APIView):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    def delete(self, request):
+        try:
+            _serializer = serializer.QuizAttemptDeleteSerializer(data=request.data)
+            if not _serializer.is_valid():
+                return response_builder(
+                    result=_serializer.errors,
+                    status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                )
+
+            validated_data = _serializer.validated_data
+            user = validated_data.get("user")
+            quiz_set = validated_data.get("quiz_set")
+            return response_builder(
+                result=helper.delete_user_quiz_attempt(user, quiz_set),
+                status_code=status.HTTP_200_OK
+            )
+        except QuizExceptionHandler as e:
+            return response_builder(
+                result=e.error_msg,
+                status_code=e.error_code
+            )
+        except Exception as e:
+            return response_builder(
+                result=str(e),
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 class QuizResponseViewSet(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         try:
-            # models.UserAnswers.objects.all().delete()
             data = models.UserAnswers.objects.all().values()
 
             return response_builder(
@@ -143,13 +174,45 @@ class QuizResponseViewSet(APIView):
                 result=str(e),
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-class QuizResultViewSet(APIView):
+class QuizAttemptResultView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         try:
-            user = request.query_params.get("user", False)
+            user_data = decode_access_token(request)
+            user = user_data.get("user_id", False)
+            attempt = request.query_params.get("attempt", False)
+
+            if not attempt:
+                response_builder(
+                    result="Attempt not found",
+                    status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                )
+
             return response_builder(
-                result=helper.get_quiz_result(user),
+                result=helper.get_quiz_attempt_result_report(user, attempt),
+                status_code=status.HTTP_200_OK
+            )
+        except QuizExceptionHandler as e:
+            return response_builder(
+                result=e.error_msg,
+                status_code=e.error_code
+            )
+        except Exception as e:
+            return response_builder(
+                result=str(e),
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+class QuizResultViewSet(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        try:
+            user_data = decode_access_token(request)
+            user = user_data.get("user_id", False)
+            user_role = user_data.get("role", False)
+            return response_builder(
+                result=helper.get_quiz_result(user, user_role),
                 status_code=status.HTTP_200_OK
             )
         except QuizExceptionHandler as e:

@@ -1,7 +1,17 @@
 from rest_framework import status
+from exam.models import QuizAttempt, UserAnswers
 from exam.serializer import QuizResultDetailSerializer
 from quiz import seralizer as quiz_serializer
-from resources import QuizExceptionHandler
+from django.db.models import (
+    Count,
+    Subquery,
+    OuterRef,
+    IntegerField
+)
+from resources import (
+    QuizExceptionHandler,
+    UserType
+)
 from quiz.models import (
     QuizSet,
     Topic
@@ -39,8 +49,91 @@ def quiz_start_details_fill(user, quiz_set, start_at):
         )
 
 
-def get_quiz_result(user):
-    _data = models.QuizAttempt.objects.filter(user_id=user, is_submitted=True)
-    _serializer = QuizResultDetailSerializer(_data, many=True)
+def get_quiz_attempt_result_report(user, attempt):
+    found_data = UserAnswers.objects.filter(
+        attempt__id=attempt,
+        attempt__user_id=user
 
-    return _serializer.data
+    )
+
+    questions_count = found_data[0].attempt.quiz_set.questions_count
+    correct_answers = found_data.filter(is_correct=True).count()
+    incorrect_answers = found_data.filter(is_correct=False).count()
+    percentage = int(0.0 if questions_count == 0 else round((correct_answers / questions_count) * 100))
+
+    return {
+        "totalQuestions": questions_count,
+        "correctAnswers": correct_answers,
+        "incorrectAnswers": incorrect_answers,
+        "percentage": percentage,
+    }
+
+
+def delete_user_quiz_attempt(user, quiz_set):
+    found_user_attempt = QuizAttempt.objects.filter(
+        user_id=user,
+        quiz_set__id=quiz_set.id
+    )
+    if found_user_attempt:
+        found_user_attempt_answers = UserAnswers.objects.filter(
+            attempt__id=found_user_attempt[0].id
+        )
+        found_user_attempt_answers.delete()
+    found_user_attempt.delete()
+    return "User Quiz Attempt Deleted"
+
+
+def get_quiz_result(user, user_role):
+    if user_role == UserType.STUDENT.value:
+        data = models.QuizAttempt.objects.filter(user_id=user, is_submitted=True)
+        _serializer = QuizResultDetailSerializer(data, many=True)
+        return _serializer.data
+    if user_role == UserType.TEACHER.value:
+        question_count_subquery = models.QuizSet.questions.through.objects.filter(
+            quizset_id=OuterRef('pk')
+        ).values('quizset_id').annotate(
+            total_questions=Count('question_id')
+        ).values('total_questions')[:1]
+
+        # Fetch quiz sets created by the current user
+        quiz_sets = models.QuizSet.objects.filter(
+            user=user
+        ).annotate(
+            total_questions=Subquery(question_count_subquery, output_field=IntegerField())
+        )
+
+        results = []
+
+        for quiz_set in quiz_sets:
+            # Exclude quiz attempts by the quiz creator (self)
+            submitted_attempts = models.QuizAttempt.objects.filter(
+                quiz_set=quiz_set,
+                is_submitted=True
+            ).exclude(user=user)
+
+            student_attempts = submitted_attempts.count()
+            all_correct_students = 0
+
+            for attempt in submitted_attempts:
+                correct_count = models.UserAnswers.objects.filter(
+                    attempt=attempt,
+                    is_correct=True
+                ).count()
+
+                if correct_count == quiz_set.total_questions:
+                    all_correct_students += 1
+
+            not_all_correct_students = student_attempts - all_correct_students
+
+            results.append({
+                "quiz_set_id": quiz_set.id,
+                "topic_name": quiz_set.topic.name,
+                "difficulty_level": quiz_set.difficulty_level,
+                "set_type": quiz_set.set_type,
+                "student_attempts": student_attempts,
+                "all_correct_students": all_correct_students,
+                "not_all_correct_students": not_all_correct_students
+            })
+        return results
+    return []
+

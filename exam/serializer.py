@@ -18,27 +18,6 @@ from resources import (
 )
 
 
-class GetExamDataCheckSerializer(serializers.Serializer):
-    user = serializers.IntegerField(required=True, help_text="User ID expected")
-    quiz_set = serializers.IntegerField(required=True, help_text="Quiz ID expected")
-
-    def validate_user(self, user):
-        if not UserProfile.objects.get(id=user).exists():
-            raise QuizExceptionHandler(
-                error_msg="User does not exist",
-                error_code=status.HTTP_404_NOT_FOUND
-            )
-        return user
-
-    def validate_quiz_set(self, quiz_set):
-        if not QuizSet.objects.filter(id=quiz_set).exists():
-            raise QuizExceptionHandler(
-                error_msg="QuizSet does not exist",
-                error_code=status.HTTP_404_NOT_FOUND
-            )
-        return quiz_set
-
-
 class GetQuizSetSerializer(serializers.Serializer):
     topic = serializers.IntegerField(required=True, help_text="Topic Id expected")
     difficulty = serializers.CharField(required=True, help_text="Difficulty type expected")
@@ -107,6 +86,11 @@ class QuizAttemptSerializer(serializers.ModelSerializer):
             )
 
         return attrs
+
+
+class QuizAttemptDeleteSerializer(serializers.Serializer):
+    user = serializers.PrimaryKeyRelatedField(queryset=UserProfile.objects.all())
+    quiz_set = serializers.PrimaryKeyRelatedField(queryset=QuizSet.objects.all())
 
 
 class UserAnswersSerializer(serializers.ModelSerializer):

@@ -4,6 +4,7 @@ from resources import (
     QuestionDifficultyType
 )
 from resources.custom_enums import QuizSetType
+from users.models import UserProfile
 
 
 class Topic(models.Model):
@@ -33,6 +34,8 @@ class Question(models.Model):
         max_length=10,
         choices=QuestionDifficultyType.choices()
     )
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, editable=False)
+
 
     class Meta:
         db_table = "question"
@@ -61,6 +64,9 @@ class QuizSet(models.Model):
 
     )
     total_time = models.IntegerField(default=10)
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, editable=False)
+    is_active = models.BooleanField(default=False)
+
 
     def save(self, *args, **kwargs):
         if not self.total_time or self.total_time <= 0:
@@ -80,3 +86,7 @@ class QuizSet(models.Model):
         db_table = "quiz_set"
         managed = True
         unique_together = ("topic", "set_type", "difficulty_level")
+
+    @property
+    def questions_count(self):
+        return self.questions.count()

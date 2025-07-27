@@ -12,4 +12,5 @@ urlpatterns = [
     path('api/topic/difficulty/set', views.get_set_details, name='set_details'),
     path('api/question', views.QuestionView.as_view(), name='question'),
     path('api/quiz-set', views.QuizSetView.as_view(), name='quiz_set'),
+    path('api/quiz-set-details', views.QuizSetDetailsView.as_view(), name='QuizSetDetailsView'),
 ]

@@ -103,6 +103,10 @@ class QuestionSerializer(serializers.ModelSerializer):
             )
         return attrs
 
+    def create(self, validated_data):
+        user = self.context["user"]
+        return Question.objects.create(user=user, **validated_data)
+
 
 class QuestionDetailsSerializer(serializers.Serializer):
     id = serializers.SerializerMethodField()

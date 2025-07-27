@@ -1,10 +1,27 @@
 from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
 from resources import QuizExceptionHandler
-from users.seralizer import UserProfileSerializer
-
 from django.contrib.auth import get_user_model
 User = get_user_model()
 
+def get_tokens_for_user(user):
+    refresh = RefreshToken.for_user(user)
+
+    access_token = refresh.access_token
+    access_token['username'] = user.username
+    access_token['email'] = user.email
+    access_token['firstName'] = user.first_name
+    access_token['lastName'] = user.last_name
+    access_token['name'] = f"{user.first_name} {user.last_name}"
+    access_token['gender'] = user.gender
+    access_token['age'] = user.age
+    access_token['contactNo'] = user.contact_no
+    access_token['role'] = user.role
+
+    return {
+        'access': str(access_token),
+        'refresh': str(refresh),
+    }
 
 def login(username, password):
     user = User.objects.filter(username=username).first()
@@ -17,13 +34,9 @@ def login(username, password):
 
     # NOW CHECK THE PASSWORD
     if not user.check_password(password):
-
         raise QuizExceptionHandler(
             error_msg=f"Incorrect password. Please try again.",
             error_code=status.HTTP_406_NOT_ACCEPTABLE,
         )
 
-    # LOGIN SUCCESSFUL
-    serializer = UserProfileSerializer(user)
-
-    return serializer.data
+    return get_tokens_for_user(user)

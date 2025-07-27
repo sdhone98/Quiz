@@ -1,7 +1,9 @@
 from django.db import transaction
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from resources import decode_access_token
 from quiz import (
     helper,
     seralizer
@@ -10,9 +12,11 @@ from resources import (
     response_builder,
     QuizExceptionHandler
 )
+from users.models import UserProfile
 
 
 class TopicView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request, *args, **kwargs):
         try:
             is_flat = request.query_params.get("flat", False)
@@ -115,6 +119,7 @@ class TopicView(APIView):
 
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def get_topics_difficulty(request):
     try:
         return response_builder(
@@ -134,15 +139,9 @@ def get_topics_difficulty(request):
 
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def get_set_details(request):
     try:
-        # validated_data = seralizer.SetCheckSerializer(data=request.data)
-        # if not validated_data.is_valid():
-        #     return response_builder(
-        #         result=validated_data.error_messages,
-        #         status_code=status.HTTP_406_NOT_ACCEPTABLE
-        #     )
-
         return response_builder(
             result=helper.get_set_details(),
             status_code=status.HTTP_200_OK
@@ -160,6 +159,7 @@ def get_set_details(request):
 
 
 class QuestionView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request, *args, **kwargs):
         try:
             return response_builder(
@@ -181,7 +181,13 @@ class QuestionView(APIView):
     def post(self, request, *args, **kwargs):
         try:
             is_bulk = isinstance(request.data, list)
-            validated_data = seralizer.QuestionSerializer(data=request.data, many=is_bulk)
+            user_data = decode_access_token(request)
+            user = user_data.get("user_id", 0)
+            validated_data = seralizer.QuestionSerializer(
+                data=request.data,
+                many=is_bulk,
+                context={"user": UserProfile.objects.get(id=user)}
+            )
             if not validated_data.is_valid():
                 return response_builder(
                     result=validated_data.errors,
@@ -228,6 +234,7 @@ class QuestionView(APIView):
 
 
 class QuizSetView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request, *args, **kwargs):
         try:
             in_detail = request.query_params.get("detail", False)
@@ -260,10 +267,11 @@ class QuizSetView(APIView):
     @transaction.atomic()
     def post(self, request, *args, **kwargs):
         try:
+            user_data = decode_access_token(request)
+            request.data["user"] = int(user_data.get("user_id", 0))
             serializer = seralizer.QuizSetSerializer(data=request.data)
             if serializer.is_valid():
-                serializer.save()
-
+                serializer.save(user_id=user_data["user_id"])
                 return response_builder(
                     result="Quiz set created successfully",
                     status_code=status.HTTP_201_CREATED
@@ -321,6 +329,27 @@ class QuizSetView(APIView):
             helper.delete_quiz_set(quiz_set_id)
             return response_builder(
                 result="Quiz set deleted successfully",
+                status_code=status.HTTP_200_OK
+            )
+        except QuizExceptionHandler as e:
+            return response_builder(
+                result=e.error_msg,
+                status_code=e.error_code
+            )
+        except Exception as e:
+            return response_builder(
+                result=str(e),
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class QuizSetDetailsView(APIView):
+    def get(self, request, *args, **kwargs):
+        try:
+            user_data = decode_access_token(request)
+            user= user_data.get("user_id", 0)
+            return response_builder(
+                result=helper.get_quiz_set_details_for_teachers_view(user),
                 status_code=status.HTTP_200_OK
             )
         except QuizExceptionHandler as e:

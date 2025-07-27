@@ -1,13 +1,16 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenRefreshView
+
 from resources import (
     response_builder,
     QuizExceptionHandler
 )
 from users.seralizer import (
     UserProfileSerializer,
-    UserLoginSerializer
+    UserLoginSerializer,
+    CustomTokenRefreshSerializer
 )
 from users import (
     helper,
@@ -88,3 +91,6 @@ class LoginView(APIView):
                 result=str(e),
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+class CustomTokenRefreshView(TokenRefreshView):
+    serializer_class = CustomTokenRefreshSerializer

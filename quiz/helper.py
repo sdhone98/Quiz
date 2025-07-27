@@ -8,6 +8,7 @@ from quiz.seralizer import (
     QuizSetDetailsSerializer,
     QuestionDetailsSerializer
 )
+from exam import models as exam_models
 
 
 def get_all_topics(is_flat):
@@ -162,3 +163,32 @@ def delete_quiz_set(quiz_set_id):
         )
 
     found_q_set.delete()
+
+
+def get_quiz_set_details_for_teachers_view(user):
+    all_quiz_sets = QuizSet.objects.all()
+    user_quiz_sets = all_quiz_sets.filter(user_id=user)
+
+    total_quizzes = all_quiz_sets.count()
+    active_quizzes = all_quiz_sets.filter(is_active=True).count()
+
+    total_students_participated = exam_models.QuizAttempt.objects.filter(
+        is_submitted=True
+    ).values('user').distinct().count()
+
+    user_total_quizzes = user_quiz_sets.count()
+    user_active_quizzes = user_quiz_sets.filter(is_active=True).count()
+
+    user_total_students_participated = exam_models.QuizAttempt.objects.filter(
+        is_submitted=True,
+        quiz_set__user_id=user
+    ).exclude(user_id=user).values('user').distinct().count()
+
+    return {
+        "totalQuizzes": total_quizzes,
+        "activeQuizzes": active_quizzes,
+        "totalStudentsParticipated": total_students_participated,
+        "userTotalQuizzes": user_total_quizzes,
+        "userActiveQuizzes": user_active_quizzes,
+        "userTotalStudentsParticipated": user_total_students_participated,
+    }

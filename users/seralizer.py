@@ -1,4 +1,7 @@
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
+
 from users import models
 
 
@@ -38,3 +41,24 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserLoginSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     password = serializers.CharField(required=True)
+
+class CustomTokenRefreshSerializer(TokenRefreshSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        refresh = RefreshToken(attrs['refresh'])
+
+        user = models.UserProfile.objects.get(id=refresh['user_id'])
+
+        access_token = refresh.access_token
+        access_token['username'] = user.username
+        access_token['email'] = user.email
+        access_token['firstName'] = user.first_name
+        access_token['lastName'] = user.last_name
+        access_token['name'] = f"{user.first_name} {user.last_name}"
+        access_token['gender'] = user.gender
+        access_token['age'] = user.age
+        access_token['contactNo'] = user.contact_no
+        access_token['role'] = user.role
+
+        data['access'] = str(access_token)
+        return data
