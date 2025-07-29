@@ -6,7 +6,19 @@ from django.db.models import (
     Count,
     Subquery,
     OuterRef,
-    IntegerField
+    IntegerField,
+    Q,
+    F,
+    Value,
+    Case,
+    When,
+    ExpressionWrapper,
+    FloatField,
+    CharField
+)
+from django.db.models.functions import (
+    Concat,
+    Cast
 )
 from resources import (
     QuizExceptionHandler,
@@ -137,3 +149,56 @@ def get_quiz_result(user, user_role):
         return results
     return []
 
+
+def get_leader_board_result(topic, difficulty):
+    found_data = QuizAttempt.objects.filter(
+        is_submitted=True
+    )
+    if topic:
+        found_data = found_data.filter(
+            quiz_set__topic__id=topic
+        )
+    if difficulty:
+        found_data = found_data.filter(
+            quiz_set__difficulty_level=difficulty
+        )
+    results = (
+        found_data
+        .annotate(
+            quizSetId=F('quiz_set__id'),
+            topicName=F('quiz_set__topic__name'),
+            difficultyLevel=F('quiz_set__difficulty_level'),
+            setType=F('quiz_set__set_type'),
+            studentName=Concat(F('user__first_name'), Value(' '), F('user__last_name')),
+            totalQuestions=Count('useranswers'),
+            correctCount=Count('useranswers', filter=Q(useranswers__is_correct=True)),
+            wrongCount=Count('useranswers', filter=Q(useranswers__is_correct=False)),
+        )
+        .annotate(
+            percentage_int=Case(
+                When(totalQuestions=0, then=Value(0)),
+                default=ExpressionWrapper(
+                    100 * F('correctCount') / F('totalQuestions'),
+                    output_field=IntegerField()
+                )
+            )
+        )
+        .annotate(
+            percentage=Concat(
+                Cast('percentage_int', CharField()),
+                Value('%')
+            )
+        )
+        .values(
+            'topicName',
+            'difficultyLevel',
+            'setType',
+            'studentName',
+            'totalQuestions',
+            'correctCount',
+            'wrongCount',
+            'percentage',
+        )
+        .order_by('setType', 'correctCount', 'end_at')
+    )
+    return results
