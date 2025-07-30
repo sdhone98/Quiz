@@ -115,6 +115,7 @@ class QuestionDetailsSerializer(serializers.Serializer):
     correct_option = serializers.SerializerMethodField()
     difficulty_level = serializers.SerializerMethodField()
     topic = serializers.SerializerMethodField()
+    is_used = serializers.SerializerMethodField()
 
     def get_id(self, obj):
         return obj.id
@@ -139,6 +140,16 @@ class QuestionDetailsSerializer(serializers.Serializer):
 
     def get_topic(self, obj):
         return obj.topic.id
+
+    def get_is_used(self, obj):
+        used_details = QuizSet.objects.filter(
+            questions__id=obj.id
+        ).values(
+            "topic__name",
+            "set_type",
+            "difficulty_level"
+        )
+        return used_details
 
 
 class QuizSetSerializer(serializers.ModelSerializer):

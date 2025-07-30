@@ -73,9 +73,21 @@ def get_all_questions(request):
     if topic and difficulty:
         questions = Question.objects.filter(topic__id=int(topic), difficulty_level=difficulty)
 
+    total_questions_count = questions.count()
+    used_questions_count = QuizSet.objects.filter(
+        questions__id__in=questions.values_list("id", flat=True).distinct()
+    ).values_list("questions__id", flat=True).distinct().count()
+
     serializer = QuestionDetailsSerializer(questions, many=True)
 
-    return serializer.data
+    return {
+        "questionsData": serializer.data,
+        "questionsCounterDetails": {
+            "totalQuestions": questions.count(),
+            "usedQuestions": used_questions_count,
+            "remainingQuestions": (total_questions_count - used_questions_count),
+        }
+    }
 
 
 def delete_question(question_id):
