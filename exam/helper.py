@@ -208,9 +208,9 @@ def get_leader_board_top_result(topic=None, difficulty=None):
     user_answers = UserAnswers.objects.all()
 
     if topic is not None:
-        user_answers = user_answers.filter(question__topic_id=topic)
+        user_answers = user_answers.filter(attempt__quiz_set__topic_id=topic)
     if difficulty is not None:
-        user_answers = user_answers.filter(question__difficulty=difficulty)
+        user_answers = user_answers.filter(attempt__quiz_set__difficulty_level=difficulty)
 
     top_users = (
         user_answers
