@@ -202,3 +202,40 @@ def get_leader_board_result(topic, difficulty):
         .order_by('setType', 'correctCount', 'end_at')
     )
     return results
+
+
+def get_leader_board_top_result(topic=None, difficulty=None):
+    user_answers = UserAnswers.objects.all()
+
+    if topic is not None:
+        user_answers = user_answers.filter(question__topic_id=topic)
+    if difficulty is not None:
+        user_answers = user_answers.filter(question__difficulty=difficulty)
+
+    top_users = (
+        user_answers
+        .values(
+            user_id=F('attempt__user__id'),
+            username=F('attempt__user__username'),
+            first_name=F('attempt__user__first_name'),
+            last_name=F('attempt__user__last_name')
+        )
+        .annotate(
+            total_answers=Count('id'),
+            correct_answers=Count('id', filter=Q(is_correct=True)),
+            correct_percentage=ExpressionWrapper(
+                100.0 * Count('id', filter=Q(is_correct=True)) / Count('id'),
+                output_field=FloatField()
+            )
+        )
+        .order_by('-correct_percentage')[:3]
+    )
+    response = []
+    for position, user in enumerate(top_users, start=1):
+        response.append({
+            'position': position,
+            'username': user['username'],
+            'name': (user['first_name'] or '') + " " + (user['last_name'] or ''),
+            'percentage': int(round(user['correct_percentage'], 1))
+        })
+    return response

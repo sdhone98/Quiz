@@ -244,3 +244,25 @@ class QuizResultLeaderBoardView(APIView):
             return response_builder(
                 result=str(e),
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class QuizResultLeaderBoardTopView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        try:
+            topic = request.query_params.get("topic", None)
+            difficulty = request.query_params.get("difficulty", None)
+            return response_builder(
+                result=helper.get_leader_board_top_result(topic, difficulty),
+                status_code=status.HTTP_200_OK
+            )
+        except QuizExceptionHandler as e:
+            return response_builder(
+                result=e.error_msg,
+                status_code=e.error_code
+            )
+        except Exception as e:
+            return response_builder(
+                result=str(e),
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+

@@ -7,5 +7,6 @@ urlpatterns = [
     path('attempt/submit', views.QuizResponseViewSet.as_view(), name='QuizResponseViewSet'),
     path('attempt/result', views.QuizAttemptResultView.as_view(), name='QuizAttemptResultView'),
     path('result', views.QuizResultViewSet.as_view(), name='QuizResultViewSet'),
-    path('leaderboard', views.QuizResultLeaderBoardView.as_view(), name='QuizResultLeaderBoardView'),
+    path('leaderboard/top', views.QuizResultLeaderBoardTopView.as_view(), name='QuizResultLeaderBoardTopView'),
+    path('leaderboard/result', views.QuizResultLeaderBoardView.as_view(), name='QuizResultLeaderBoardView'),
 ]
